@@ -1,0 +1,191 @@
+- name: Install the server dependencies
+  ansible.builtin.package:
+    name:
+      - build-essential # Required since the server uses go-sqlite3 which is a C library
+  become: true
+
+- name: Check for Go
+  ansible.builtin.command:
+    cmd: go version
+  register: go_version
+  ignore_errors: true
+
+- name: Download Go
+  ansible.builtin.get_url:
+    url: https://go.dev/dl/go{{ ludus_adaptix_c2_go_version }}.linux-amd64.tar.gz
+    dest: /tmp/go{{ ludus_adaptix_c2_go_version }}.linux-amd64.tar.gz
+    mode: '0644'
+  become: true
+  when: go_version.rc != 0 or ludus_adaptix_c2_go_version not in go_version.stdout
+
+- name: Extract Go
+  ansible.builtin.unarchive:
+    src: /tmp/go{{ ludus_adaptix_c2_go_version }}.linux-amd64.tar.gz
+    dest: /usr/local
+    remote_src: true
+  become: true
+  when: go_version.rc != 0 or ludus_adaptix_c2_go_version not in go_version.stdout
+
+- name: Create symbolic link for Go binary
+  ansible.builtin.file:
+    src: /usr/local/go/bin/go
+    dest: /usr/local/bin/go
+    state: link
+  become: true
+  when: go_version.rc != 0 or ludus_adaptix_c2_go_version not in go_version.stdout
+
+- name: Build the server
+  ansible.builtin.command:
+    cmd: make server
+    chdir: /opt/adaptix
+    creates: /opt/adaptix/dist/adaptixserver
+  become: true
+
+- name: Build the extenders
+  ansible.builtin.command:
+    cmd: make extenders
+    chdir: /opt/adaptix
+    creates: /opt/adaptix/dist/extenders
+  become: true
+
+- name: Link server binary to /usr/local/bin/adaptixserver
+  ansible.builtin.file:
+    src: /opt/adaptix/dist/adaptixserver
+    dest: /usr/local/bin/adaptixserver
+    state: link
+  become: true
+
+## These tasks require python cryptography >= 1.2.3, so we'll just use openssl on the command line
+# - name: Generate a self-signed certificate and key for the server
+#   community.crypto.openssl_privatekey:
+#     path: /opt/adaptix/server.rsa.key
+#     type: RSA
+#     size: 4096
+#     state: present
+#   become: true
+#   when: ludus_adaptix_c2_generate_certificate
+
+# - name: Create certificate signing request (CSR) for self-signed certificate
+#   community.crypto.openssl_csr_pipe:
+#     privatekey_path: /opt/adaptix/server.rsa.key
+#     common_name: "{{ ludus_adaptix_c2_common_name }}"
+#     organization_name: "{{ ludus_adaptix_c2_organization_name }}"
+#     subject_alt_name:
+#       "{{ ludus_adaptix_c2_subject_alt_name_array }}"
+#   register: csr
+#   become: true
+#   when: ludus_adaptix_c2_generate_certificate
+
+# - name: Create self-signed certificate from CSR
+#   community.crypto.x509_certificate:
+#     path: /opt/adaptix/server.rsa.crt
+#     csr_content: "{{ csr.csr }}"
+#     privatekey_path: /opt/adaptix/server.rsa.key
+#     provider: selfsigned
+#   become: true
+#   when: ludus_adaptix_c2_generate_certificate
+
+- name: Generate a self-signed certificate and key for the server
+  ansible.builtin.command:
+    cmd: |
+      openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes
+      -keyout /opt/adaptix/server.rsa.key -out /opt/adaptix/server.rsa.crt
+      -subj "/CN={{ ludus_adaptix_c2_common_name }}/O={{ ludus_adaptix_c2_organization_name }}"
+      -addext "subjectAltName={{ ludus_adaptix_c2_subject_alt_name_array }}"
+    chdir: /opt/adaptix
+    creates: /opt/adaptix/server.rsa.crt
+  become: true
+  when: ludus_adaptix_c2_generate_certificate is defined and ludus_adaptix_c2_generate_certificate
+
+- name: Create the profile file for the server from template
+  ansible.builtin.template:
+    src: default-profile.json.j2
+    dest: /opt/adaptix/profile.json
+    mode: '0644'
+  become: true
+  when:
+    - ludus_adaptix_c2_profile_url is not defined or ludus_adaptix_c2_profile_url is none
+    - ludus_adaptix_c2_profile_raw is not defined or ludus_adaptix_c2_profile_raw is none
+
+- name: Download the profile file for the server from URL
+  ansible.builtin.get_url:
+    url: "{{ ludus_adaptix_c2_profile_url }}"
+    dest: /opt/adaptix/profile.json
+    mode: '0644'
+  become: true
+  when:
+    - ludus_adaptix_c2_profile_url is defined and ludus_adaptix_c2_profile_url is not none
+    - ludus_adaptix_c2_profile_raw is not defined or ludus_adaptix_c2_profile_raw is none
+
+- name: Create the profile file for the server from raw data
+  ansible.builtin.copy:
+    content: "{{ ludus_adaptix_c2_profile_raw }}"
+    dest: /opt/adaptix/profile.json
+    mode: '0644'
+  become: true
+  when:
+    - ludus_adaptix_c2_profile_url is not defined or ludus_adaptix_c2_profile_url is none
+    - ludus_adaptix_c2_profile_raw is defined and ludus_adaptix_c2_profile_raw is not none
+
+- name: Create the 404 page for the server
+  ansible.builtin.template:
+    src: 404page.html.j2
+    dest: /opt/adaptix/404page.html
+    mode: '0644'
+  become: true
+
+- name: Move the gopher src into the directory the server expects (Bug?)
+  ansible.builtin.copy:
+    src: /opt/adaptix/Extenders/agent_gopher/src_gopher/ # trailing slash is important, means copy the contents of the directory
+    dest: /opt/adaptix/dist/extenders/agent_gopher/src_gopher
+    mode: '0755'
+    remote_src: true
+  become: true
+
+- name: Create a service file for the server
+  ansible.builtin.template:
+    src: adaptix-c2.service.j2
+    dest: /etc/systemd/system/adaptix-c2.service
+    mode: '0644'
+  become: true
+
+- name: Create a user for the server
+  ansible.builtin.user:
+    name: adaptix
+    home: /home/adaptix
+    shell: /bin/bash
+    create_home: true
+  become: true
+
+- name: Chown the server directory to the adaptix user
+  ansible.builtin.file:
+    path: /opt/adaptix
+    owner: adaptix
+    group: adaptix
+    recurse: true
+  become: true
+
+- name: Enable and start the server service
+  ansible.builtin.systemd:
+    name: adaptix-c2
+    state: started
+    enabled: true
+  become: true
+
+- name: Build the gopher agent for Linux and macOS to "warm" the Go build cache and prevent JWT token errors (5 second timeouts)
+  ansible.builtin.shell:
+    cmd: |
+      cd /opt/adaptix/dist/extenders/agent_gopher/src_gopher
+      go mod tidy
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+      CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+      # Bug? Errors with: `link: duplicated definition of symbol dlopen, from github.com/ebitengine/purego and github.com/ebitengine/purego`
+      # CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+  become: true
+  become_user: adaptix
+
+- name: Inform the user that the Adaptix C2 Server is up and running
+  ansible.builtin.debug:
+    msg: |
+      Adaptix C2 Server is up and running. Access it on {{ ansible_host }} with password: {{ ludus_adaptix_c2_password }}

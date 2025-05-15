@@ -1,0 +1,16 @@
+---
+ludus_adaptix_c2_version: 56ced68c12be98f5086a7f3c62ecb39924061fd0 # 0.4 2024-04-28
+ludus_adaptix_c2_install_server: false # Set this or the one below to true or the role won't do anything!
+ludus_adaptix_c2_install_client: false
+ludus_adaptix_c2_profile_url:
+ludus_adaptix_c2_profile_raw:
+ludus_adaptix_c2_server_args: # -debug can be used here
+ludus_adaptix_c2_go_version: 1.24.3
+# All options below are for the Adaptix GUI clients to connect to the server, not a c2 agent
+ludus_adaptix_c2_port: 4321
+ludus_adaptix_c2_endpoint: /endpoint
+ludus_adaptix_c2_password: pass
+ludus_adaptix_c2_generate_certificate: true
+ludus_adaptix_c2_common_name: localhost
+ludus_adaptix_c2_organization_name: Adaptix C2
+ludus_adaptix_c2_subject_alt_name_array: "DNS:localhost,DNS:127.0.0.1,DNS:::1"

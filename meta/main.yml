@@ -1,0 +1,27 @@
+dependencies: []
+
+galaxy_info:
+  role_name: ludus_adaptix_c2
+  author: badsectorlabs
+  description: An Ansible Role that installs Adaptix C2 on Debian based Linux systems
+  company: Bad Sector Labs
+  license: GPLv3
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - noble
+    - name: Kali
+      versions:
+        - all
+  galaxy_tags:
+    - ludus
+    - adaptix
+    - c2
+    - c2-server
+    - redteam
+
+collections: []

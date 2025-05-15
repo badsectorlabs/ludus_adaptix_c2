@@ -1,0 +1,31 @@
+[Unit]
+Description=Adaptix C2 Server
+After=network.target
+
+[Service]
+Type=simple
+User=adaptix
+WorkingDirectory=/opt/adaptix
+ExecStart=/usr/local/bin/adaptixserver -profile /opt/adaptix/profile.json {{ ludus_adaptix_c2_server_args }}
+Restart=always
+RestartSec=10
+AmbientCapabilities=CAP_NET_BIND_SERVICE # Allow binding to low ports
+ProtectSystem=full
+PrivateDevices=true
+PrivateMounts=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+ProtectClock=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6
+SocketBindDeny=ipv4:udp
+SocketBindDeny=ipv6:udp
+CapabilityBoundingSet=~CAP_BLOCK_SUSPEND CAP_BPF CAP_MKNOD CAP_NET_RAW CAP_PERFMON CAP_SYS_BOOT CAP_SYS_CHROOT CAP_SYS_MODULE CAP_SYS_NICE CAP_SYS_PACCT CAP_SYS_PTRACE CAP_SYS_TIME CAP_SYS_TTY_CONFIG CAP_SYSLOG CAP_WAKE_ALARM
+SystemCallFilter=~@aio:EPERM @clock:EPERM @cpu-emulation:EPERM @debug:EPERM @keyring:EPERM @memlock:EPERM @module:EPERM @mount:EPERM @obsolete:EPERM @pkey:EPERM @privileged:EPERM @raw-io:EPERM @reboot:EPERM @resources:EPERM @sandbox:EPERM @setuid:EPERM @swap:EPERM @timer:EPERM
+
+[Install]
+WantedBy=multi-user.target

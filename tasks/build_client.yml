@@ -1,0 +1,127 @@
+- name: Install client build dependencies
+  ansible.builtin.package:
+    name:
+      - build-essential
+      - cmake
+      - libssl-dev
+      - qt6-base-dev
+      - qt6-websockets-dev
+      - sqlite3
+  become: true
+
+- name: Build client
+  ansible.builtin.command:
+    cmd: make client
+    chdir: /opt/adaptix
+    creates: /opt/adaptix/dist/AdaptixClient
+  become: true
+
+- name: Link client binary to /usr/local/bin/adaptixclient
+  ansible.builtin.file:
+    src: /opt/adaptix/dist/AdaptixClient
+    dest: /usr/local/bin/adaptixclient
+    state: link
+  become: true
+
+- name: Clone Extension-Kit
+  ansible.builtin.git:
+    repo: https://github.com/Adaptix-Framework/Extension-Kit.git
+    dest: /opt/adaptix/Extension-Kit
+    version: main
+    single_branch: true
+    force: true
+
+- name: Check for lightdm config
+  become: true
+  ansible.builtin.stat:
+    path: /etc/lightdm/lightdm.conf
+  register: lightdm_stat
+
+- name: Check for adaptix.db
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user }}/.adaptix/storage.db
+  register: adaptix_db_stat
+
+- name: Enable auto-login
+  ansible.builtin.lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    line: "autologin-user={{ ansible_user }}"
+    insertafter: '^\[Seat\:\*\]$'
+    firstmatch: true
+    state: present
+  become: true
+  when: lightdm_stat.stat.exists and not adaptix_db_stat.stat.exists
+
+- name: Restart service lightdm to auto-login
+  ansible.builtin.service:
+    name: lightdm
+    state: restarted
+  become: true
+  when: lightdm_stat.stat.exists and not adaptix_db_stat.stat.exists
+
+- name: Sleep for 8 seconds to allow login to finish
+  ansible.builtin.pause:
+    seconds: 8
+
+- name: Start the Adaptix Client once to create the database
+  ansible.builtin.command: adaptixclient
+  args:
+    chdir: /home/{{ ansible_user }}
+  environment:
+    DISPLAY: ":0.0"
+    QT_QPA_PLATFORM: "offscreen"
+    HOME: "/home/{{ ansible_user }}"
+    USER: "{{ ansible_user }}"
+    LOGNAME: "{{ ansible_user }}"
+    QT_QPA_PLATFORMTHEME: qt5ct
+    QT_AUTO_SCREEN_SCALE_FACTOR: "0"
+  timeout: 5 # Kills the client after 5 seconds, we just need it to create the database
+  register: adaptix_client_result
+  become: true
+  become_user: "{{ ansible_user }}"
+  ignore_errors: true # We're going to fail with a timeout, but that's fine
+  when: lightdm_stat.stat.exists and not adaptix_db_stat.stat.exists
+
+- name: Disable auto-login
+  ansible.builtin.lineinfile:
+    path: /etc/lightdm/lightdm.conf
+    line: 'autologin-user={{ ansible_user }}'
+    state: absent
+  become: true
+  when: lightdm_stat.stat.exists and not adaptix_db_stat.stat.exists
+
+- name: Restart service lightdm to disable auto-login
+  become: true
+  ansible.builtin.service:
+    name: lightdm
+    state: restarted
+  when: lightdm_stat.stat.exists and not adaptix_db_stat.stat.exists
+
+- name: Import Extension-Kit items into the client
+  ansible.builtin.shell: |
+    for dir in */; do
+      if [ -f "${dir%/}"/*.json ]; then
+        json_file=$(find "${dir%/}" -maxdepth 1 -name "*.json" -type f -print -quit)
+        sqlite3 /home/{{ ansible_user }}/.adaptix/storage.db "INSERT OR IGNORE INTO Extensions (filepath, enabled) VALUES ('$(realpath "$json_file")', true);"
+      fi
+    done
+  args:
+    executable: /bin/bash
+    chdir: /opt/adaptix/Extension-Kit
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: lightdm_stat.stat.exists
+
+- name: Build all the Extension-Kit items
+  ansible.builtin.shell: |
+    for dir in */; do
+      if [ -f "${dir%/}"/Makefile ]; then
+        cd "${dir%/}"
+        make
+        cd ..
+      fi
+    done
+  args:
+    executable: /bin/bash
+    chdir: /opt/adaptix/Extension-Kit
+  become: true

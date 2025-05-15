@@ -1,0 +1,27 @@
+{
+  "Teamserver": {
+    "port": {{ ludus_adaptix_c2_port }},
+    "endpoint": "{{ ludus_adaptix_c2_endpoint }}",
+    "password": "{{ ludus_adaptix_c2_password }}",
+    "cert": "/opt/adaptix/server.rsa.crt",
+    "key": "/opt/adaptix/server.rsa.key",
+    "extenders": [
+      "/opt/adaptix/dist/extenders/listener_beacon_http/config.json",
+      "/opt/adaptix/dist/extenders/listener_beacon_smb/config.json",
+      "/opt/adaptix/dist/extenders/listener_beacon_tcp/config.json",
+      "/opt/adaptix/dist/extenders/agent_beacon/config.json",
+      "/opt/adaptix/dist/extenders/listener_gopher_tcp/config.json",
+      "/opt/adaptix/dist/extenders/agent_gopher/config.json"
+    ]
+  },
+
+  "ServerResponse": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Server": "AdaptixC2",
+      "Adaptix Version": "v0.4"
+    },
+    "page": "/opt/adaptix/404page.html"
+  }
+}
