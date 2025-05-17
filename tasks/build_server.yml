@@ -175,15 +175,13 @@
 - name: Build the gopher agent for Linux and macOS to "warm" the Go build cache and prevent JWT token errors (5 second timeouts)
   ansible.builtin.shell:
     cmd: |
-      cd /opt/adaptix/dist/extenders/agent_gopher/src_gopher
-      go mod tidy
-      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-      CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+      su - adaptix -c 'cd /opt/adaptix/dist/extenders/agent_gopher/src_gopher && \
+      go mod tidy && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
+      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent'
       # Bug? Errors with: `link: duplicated definition of symbol dlopen, from github.com/ebitengine/purego and github.com/ebitengine/purego`
       # CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-  become: true
-  become_user: adaptix
 
 - name: Inform the user that the Adaptix C2 Server is up and running
   ansible.builtin.debug:
