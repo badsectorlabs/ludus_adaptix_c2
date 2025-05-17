@@ -4,6 +4,12 @@ An Ansible Role that installs [Adaptix Framework](https://adaptix-framework.gitb
 
 ![Adaptix Framework](docs/adaptix.png)
 
+## Usage
+
+By default the server listens on port `4321` and endpoint `/endpoint` with password `pass`. You can change these with role variables, see below.
+
+On the client machine, run the command `adaptixclient` to start the GUI, and then log into the server using the settings above (unless changed via variables).
+
 ## Requirements
 
 None.
