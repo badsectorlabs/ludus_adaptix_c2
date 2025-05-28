@@ -11,7 +11,7 @@
   ansible.builtin.git:
     repo: https://github.com/Adaptix-Framework/AdaptixC2.git
     dest: /opt/adaptix
-    version: main
+    version: "{{ ludus_adaptix_c2_version }}"
     single_branch: true
     force: true
   become: true
@@ -30,7 +30,7 @@
   ansible.builtin.git:
     repo: https://github.com/Adaptix-Framework/AdaptixC2.git
     dest: /opt/adaptix
-    version: main
+    version: "{{ ludus_adaptix_c2_version }}"
     single_branch: true
     force: true
   become: true

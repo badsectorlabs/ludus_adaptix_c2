@@ -1,5 +1,5 @@
 ---
-ludus_adaptix_c2_version: 56ced68c12be98f5086a7f3c62ecb39924061fd0 # 0.4 2024-04-28
+ludus_adaptix_c2_version: 3af8e10c8c2d7d48e3636f48b0f9c80da4d6015d # 0.5 2024-05-28
 ludus_adaptix_c2_install_server: false # Set this or the one below to true or the role won't do anything!
 ludus_adaptix_c2_install_client: false
 ludus_adaptix_c2_profile_url:
