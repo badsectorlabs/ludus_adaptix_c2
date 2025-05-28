@@ -179,9 +179,10 @@
       go mod tidy && \
       CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
       CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
-      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent'
-      # Bug? Errors with: `link: duplicated definition of symbol dlopen, from github.com/ebitengine/purego and github.com/ebitengine/purego`
-      # CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
+      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
+      CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
+      CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent && \
+      CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent'
 
 - name: Inform the user that the Adaptix C2 Server is up and running
   ansible.builtin.debug:
