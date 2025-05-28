@@ -85,21 +85,6 @@ ludus:
       ludus_adaptix_c2_install_client: true
 ```
 
-## Known issues
-
-If building a Gopher agent fails with `JWT Error`, first try it again, if that still fails, SSH into the server and run the following commands:
-
-```
-# Assumes you are root to start
-su adaptix -
-cd /opt/adaptix/dist/extenders/agent_gopher/src_gopher
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o agent -buildvcs=false && rm agent
-```
-
-This will warm the go build cache so it can build within the 5 second timeout of the API. The role does this for you, but for some reason it doesn't work quite the same in ansible as via SSH?
-
 ## License
 
 GPLv3
