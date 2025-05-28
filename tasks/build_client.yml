@@ -1,5 +1,5 @@
 - name: Install client build dependencies
-  ansible.builtin.package:
+  ansible.builtin.apt:
     name:
       - build-essential
       - cmake
@@ -7,6 +7,7 @@
       - qt6-base-dev
       - qt6-websockets-dev
       - sqlite3
+    update_cache: true
   become: true
 
 - name: Build client
